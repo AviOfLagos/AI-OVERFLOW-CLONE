@@ -1,0 +1,39 @@
+{
+  "product_description": "A StackOverflow-like platform for AI coders to share/troubleshoot issues. MVP focuses on core Q&A flow with mock auth and seamless sharing.",
+  "user_flows": [
+    "User posts an AI coding issue (title, description, error code, screenshot)",
+    "User browses/search issues without logging in",
+    "Logged-in user comments/votes on solutions",
+    "User shares issue thread via URL"
+  ],
+  "pages": [
+    "/home (list of issues)",
+    "/issue/[id] (issue detail)",
+    "/submit-issue (form)",
+    "/auth/mock-login (temporary)"
+  ],
+  "core_components": [
+    "IssueCard",
+    "CommentSection",
+    "VoteButtons",
+    "ShareButton"
+  ],
+  "tech_stack": "Next.js 15, TypeScript, Tailwind, shadcn-ui, Zustand, Zod, Supabase (mock)",
+  "core_practices": {
+    "state_management": "Zustand (persisted to localStorage)",
+    "validation": "Zod for issue submissions/comments",
+    "mocking": "lib/mockData.ts with AI issue examples",
+    "error_handling": "toast notifications + console logging",
+    "auth": "Mock login (hardcoded user)"
+  },
+  "progress": {
+    "completed": [
+      "Initialize Next.js project with shadcn-ui",
+      "Create Zustand store for issues/comments",
+      "Build IssueCard component",
+      "Implement mock auth context"
+    ],
+    "next_steps": [],
+    "blockers": []
+  }
+}
