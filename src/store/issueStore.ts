@@ -8,6 +8,8 @@ export interface IssueItem {
   votes: number;
   errorCode?: string;
   screenshot?: string;
+  authorName: string;
+  createdAt: string;
 }
 
 export interface CommentItem {
@@ -45,12 +47,16 @@ export const useIssueStore = create<IssueState>()(
             title: 'Issue 1',
             description: 'Description 1',
             votes: 0,
+        authorName: 'Mock User',
+        createdAt: '2025-01-29T13:41:00Z',
           },
           {
             id: '2',
             title: 'Issue 2',
             description: 'Description 2',
             votes: 0,
+        authorName: 'Mock User',
+        createdAt: '2025-01-29T13:41:00Z',
           },
         ];
         set((state) => {

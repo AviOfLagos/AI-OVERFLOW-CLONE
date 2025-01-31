@@ -1,39 +1,40 @@
 {
-  "product_description": "A StackOverflow-like platform for AI coders to share/troubleshoot issues. MVP focuses on core Q&A flow with mock auth and seamless sharing.",
-  "user_flows": [
-    "User posts an AI coding issue (title, description, error code, screenshot)",
-    "User browses/search issues without logging in",
-    "Logged-in user comments/votes on solutions",
-    "User shares issue thread via URL"
-  ],
-  "pages": [
-    "/home (list of issues)",
-    "/issue/[id] (issue detail)",
-    "/submit-issue (form)",
-    "/auth/mock-login (temporary)"
-  ],
-  "core_components": [
-    "IssueCard",
-    "CommentSection",
-    "VoteButtons",
-    "ShareButton"
-  ],
-  "tech_stack": "Next.js 15, TypeScript, Tailwind, shadcn-ui, Zustand, Zod, Supabase (mock)",
-  "core_practices": {
-    "state_management": "Zustand (persisted to localStorage)",
-    "validation": "Zod for issue submissions/comments",
-    "mocking": "lib/mockData.ts with AI issue examples",
-    "error_handling": "toast notifications + console logging",
-    "auth": "Mock login (hardcoded user)"
+  "project_name": "AIOverflow",
+  "current_version": "1.1-backend-migration",
+  "core_requirements": {
+    "mandatory": [
+      "Supabase auth integration",
+      "Supabase PostgreSQL schema for issues/comments",
+      "Cloudinary image upload",
+      "Next.js Image optimization",
+      "Progress tracking in .aioverflow-progress.json"
+    ],
+    "forbidden": [
+      "LocalStorage persistence",
+      "Zustand stores for core data",
+      "Mock auth systems"
+    ]
+  },
+  "tech_stack": {
+    "frontend": "Next.js 15 (App Router), TypeScript, Tailwind",
+    "backend": "Supabase (Auth+DB), Cloudinary SDK",
+    "ui": "shadcn-ui (basic components)"
   },
   "progress": {
+    "current_phase": "Phase 2 - Backend Integration",
     "completed": [
-      "Initialize Next.js project with shadcn-ui",
-      "Create Zustand store for issues/comments",
-      "Build IssueCard component",
-      "Implement mock auth context"
+      "Basic issue posting flow",
+      "Mock comment system",
+      "Share link functionality"
     ],
-    "next_steps": [],
+    "next_steps": [
+      "1. Supabase schema creation",
+      "2. Auth integration replacement",
+      "3. Cloudinary image handling",
+      "4. Data migration from mock to Supabase"
+    ],
     "blockers": []
   }
 }
+
+

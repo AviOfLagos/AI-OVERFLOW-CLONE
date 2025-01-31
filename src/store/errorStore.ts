@@ -33,8 +33,18 @@ export const useErrorStore = create<ErrorState>()(
       fetchErrors: () => {
         // Mock fetch errors - replace with actual API call later
         const mockErrors: ErrorItem[] = [
-          { id: '1', title: 'Error 1', description: 'Description 1' },
-          { id: '2', title: 'Error 2', description: 'Description 2' },
+          {
+            id: "1",
+            title: "Issue post 2",
+            description:
+              "StackOverflow-like platform for AI coders with modern UX. Version 1 focuses on seamless issue posting, voting, and solution discovery.",
+          },
+          {
+            id: "2",
+            title: "Issue post 2",
+            description:
+              "StackOverflow-like platform for AI coders with modern UX. Version 1 focuses on seamless issue posting, voting, and solution discovery.",
+          },
         ];
         set({ errors: mockErrors });
       },

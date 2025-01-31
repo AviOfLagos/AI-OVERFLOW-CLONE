@@ -39,6 +39,9 @@ export default function IssueDetailPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <div>
+        <p><strong>Author:</strong> {issue.authorName}</p>
+        <p><strong>Created At:</strong> {new Date(issue.createdAt).toLocaleString()}</p>
+
         <h1>{issue.title}</h1>
         <p>{issue.description}</p>
         <VoteButtons issueId={issue.id} />

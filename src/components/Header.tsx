@@ -1,27 +1,219 @@
 'use client';
 
-import React from 'react';
-import LoginButton from '@/components/LoginButton';
+import React, { useState } from 'react';
+import {
+  Sun,
+  Moon,
+  Bell,
+  Menu,
+  ChevronDown,
+} from 'lucide-react';
+import Image from 'next/image';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/button';
+import CreateIssueModal from '@/app/dashboard/CreateIssueModal';
+import LoginButton from '@/components/LoginButton';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 
 const Header: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => setMounted(true), []);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { isAuthenticated, user } = useAuthStore();
 
+  const { theme, setTheme } = useTheme();
+
+  const { logout } = useAuthStore();
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  if (!mounted) {
+    return null;
+  }
   return (
-    <header className="flex justify-between items-center p-4 bg-gray-100">
-      <nav className="flex items-center space-x-4">
-        {/* Navigation links can be added here */}
-        {isAuthenticated && (
-          <span className="text-sm">Welcome, {user?.name}</span>
-        )}
-        <Link href="/submit-issue">
-          <Button>Create New Issue</Button>
-        </Link>
+    <>
+      <nav
+        className={`border-b ${
+          theme === 'dark'
+            ? 'bg-gray-900 text-gray-100 border-gray-800'
+            : 'bg-white text-gray-900 border-gray-200'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-8">
+              <Link href="/" className="text-blue-500 font-bold text-xl">
+                AIOverflow
+              </Link>
+
+              {/* Navigation links */}
+              <div className="hidden md:flex items-center gap-6">
+                <Link
+                  href="/"
+                  className="hover:text-blue-500 transition-colors duration-300"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/browse-boilerplates"
+                  className="hover:text-blue-500 transition-colors duration-300"
+                >
+                  Browse Boilerplates
+                </Link>
+                <Link
+                  href="/prompting-guide"
+                  className="hover:text-blue-500 transition-colors duration-300"
+                >
+                  Prompting Guide
+                </Link>
+                <Link
+                  href="/share-knowledge"
+                  className="hover:text-blue-500 transition-colors duration-300"
+                >
+                  Share Knowledge
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-200 transition-colors duration-300"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </button>
+              <Bell className="w-5 h-5 text-gray-400 hover:text-blue-500 cursor-pointer transition-colors duration-300" />
+
+              {isAuthenticated ? (
+                <>
+                  {/* Post Issue Button */}
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className={`px-4 py-2 text-white rounded-lg hover:bg-blue-700 transition-transform duration-300 transform hover:scale-105 ${
+                      theme === 'dark' ? 'bg-blue-600' : 'bg-blue-500'
+                    }`}
+                  >
+                    Post Issue
+                  </button>
+
+                  {/* User Profile Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 group">
+                        <Image
+                          src={user?.profilePicture || '/default-avatar.png'}
+                          alt="Profile"
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <span>{user?.name}</span>
+                        <ChevronDown
+                          className="w-4 h-4 text-gray-400 transition-transform duration-300 transform group-hover:rotate-180"
+                        />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      className={`border ${
+                        theme === 'dark'
+                          ? 'bg-gray-800 border-gray-700'
+                          : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <DropdownMenuItem>
+                        <Link href="/profile">My Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link href="/settings">Settings</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link href="/notifications">Notifications</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link href="/terms">Terms of Use</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                      onClick={() => {
+                        logout();
+                      }}
+                    >
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                <LoginButton />
+              )}
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden text-gray-400 hover:text-white"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div
+              className={`md:hidden py-4 border-t ${
+                theme === 'dark' ? 'border-gray-800' : 'border-gray-200'
+              }`}
+            >
+              <Link
+                href="/"
+                className="py-2 hover:text-blue-500 transition-colors duration-300"
+              >
+                Home
+              </Link>
+              <Link
+                href="/browse-boilerplates"
+                className="py-2 hover:text-blue-500 transition-colors duration-300"
+              >
+                Browse Boilerplates
+              </Link>
+              <Link
+                href="/prompting-guide"
+                className="py-2 hover:text-blue-500 transition-colors duration-300"
+              >
+                Prompting Guide
+              </Link>
+              <Link
+                href="/share-knowledge"
+                className="py-2 hover:text-blue-500 transition-colors duration-300"
+              >
+                Share Knowledge
+              </Link>
+            </div>
+          )}
+        </div>
       </nav>
-      <LoginButton />
-    </header>
+
+      {/* Create Issue Modal */}
+      {isCreateModalOpen && (
+        <CreateIssueModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
+      )}
+    </>
   );
 };
 
