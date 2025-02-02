@@ -8,8 +8,8 @@ export const createClient = () => {
 
 // Helper function to get the current user and role
 export const getCurrentUser = async () => {
-  const supabase = createClient();
   let userError;
+  const supabase = createClient();
   let profileError;
   try {
     const {

@@ -1,0 +1,45 @@
+{
+  "project": {
+    "name": "AIOverflow",
+    "phase": "backend-integration-1.3",
+    "repo": "aioverflow.vercel.app"
+  },
+  "stack": {
+    "core": "Next.js 15 (App Router), TypeScript 5.4",
+    "auth": "Supabase Auth",
+    "db": "Supabase PostgreSQL",
+    "storage": "Cloudinary",
+    "ui": "shadcn-ui (base components)"
+  },
+  "rules": {
+    "mandatory": [
+      "Progress tracking in .aio-progress.json",
+      "Zod validation on all forms",
+      "Supabase RLS policies",
+      "Next/Image optimization",
+      "Cloudinary signed uploads",
+      "Type-safe Supabase client"
+    ],
+    "forbidden": [
+      "Any localStorage usage",
+      "Unoptimized images",
+      "Raw SQL in components",
+      "Any type"
+    ]
+  },
+  "progress": {
+    "current": "Phase 2.1 - Auth Migration",
+    "completed": [
+      "Basic issue posting UI",
+      "Mock comment system",
+      "Share link skeleton"
+    ],
+    "next": [
+      "1. Supabase auth integration",
+      "2. Cloudinary image handler",
+      "3. Database schema migration",
+      "4. Real-time data fetching"
+    ],
+    "last_updated": "2024-02-15T00:00:00Z"
+  }
+}
