@@ -1,15 +1,17 @@
+// src/app/(auth-pages)/sign-in/page.tsx
+
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import FormMessage from '../../../components/form-message';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 const signInSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -36,12 +38,15 @@ export default function Login() {
 
   const onSubmit = async (data: SignInFormData) => {
     setLoginError('');
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
+
     if (error) {
       setLoginError(error.message);
+    } else if (signInData.user && !signInData.user.email_confirmed_at) {
+      setLoginError('Please verify your email address before signing in.');
     } else {
       // Redirect to the callbackUrl or home page
       router.push(callbackUrl || '/');
@@ -95,7 +100,7 @@ export default function Login() {
         </button>
         <div className="flex gap-2 mt-4">
           <p className="text-sm text-foreground/60">
-            Dont have an account?{' '}
+            Don&lsquo;t have an account?{' '}
             <Link
               className="text-foreground/60 font-medium underline"
               href="/sign-up"

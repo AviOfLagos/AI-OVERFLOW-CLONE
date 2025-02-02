@@ -1,6 +1,8 @@
+// src/components/Header.tsx
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sun,
   Moon,
@@ -15,11 +17,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthStore } from '@/store/authStore';
 import CreateIssueModal from '@/app/dashboard/CreateIssueModal';
 import LoginButton from '@/components/LoginButton';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import { getSession, signOut } from '@/utils/auth';
+import { User } from '@/types/user';
 
 const Header: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -27,13 +30,54 @@ const Header: React.FC = () => {
   React.useEffect(() => setMounted(true), []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { isAuthenticated, user } = useAuthStore();
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const session = await getSession();
+        if (session && session.user && session.user.email) {
+          setIsAuthenticated(true);
+          const currentUser: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || '',
+            email: session.user.email,
+            username: session.user.user_metadata?.username || '',
+            profilePicture: session.user.user_metadata?.avatar_url || '/default-avatar.png',
+            techStack: [],
+            shortBio: '',
+            tools: [],
+            techInterests: [],
+          };
+          setUser(currentUser);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      }
+    };
+
+    fetchSession();
+  }, []);
 
   const { theme, setTheme } = useTheme();
 
-  const { logout } = useAuthStore();
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   if (!mounted) {
@@ -146,11 +190,7 @@ const Header: React.FC = () => {
                       <DropdownMenuItem>
                         <Link href="/terms">Terms of Use</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                      onClick={() => {
-                        logout();
-                      }}
-                    >
+                      <DropdownMenuItem onClick={handleLogout}>
                         Logout
                       </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -1,35 +1,87 @@
+// src/app/profile/page.tsx
+
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent } from 'react';
-import { useAuthStore } from '@/store/authStore';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { getSession, supabase } from '@/utils/auth';
+import { User } from '@/types/user';
+import { uploadImage, CloudinaryUploadResponse } from '@/lib/cloudinary';
+import { z } from 'zod';
 
-interface FormData {
-  name: string;
-  profilePicture: string;
-  username: string;
-  techStack: string;
-  shortBio: string;
-  tools: string;
-  techInterests: string;
-}
+const profileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  username: z.string().min(1, 'Username is required'),
+  shortBio: z.string().optional(),
+  techStack: z.string().optional(),
+  tools: z.string().optional(),
+  techInterests: z.string().optional(),
+  profilePicture: z.string().url().optional(),
+});
+
+type ProfileSchema = z.infer<typeof profileSchema>;
 
 const ProfilePage = () => {
-  const { user, setUser } = useAuthStore();
-  const [formData, setFormData] = useState<FormData>({
-    name: user?.name || '',
-    profilePicture: user?.profilePicture || '',
-    username: user?.username || '',
-    techStack: user?.techStack?.join(', ') || '',
-    shortBio: user?.shortBio || '',
-    tools: user?.tools?.join(', ') || '',
-    techInterests: user?.techInterests?.join(', ') || '',
+  const [user, setUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<ProfileSchema>({
+    name: '',
+    username: '',
+    shortBio: '',
+    techStack: '',
+    tools: '',
+    techInterests: '',
+    profilePicture: '',
   });
-  const [preview, setPreview] = useState<string>(user?.profilePicture || '');
+  const [preview, setPreview] = useState<string>('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const session = await getSession();
+      if (session && session.user && session.user.email) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+
+        const currentUser: User = {
+          id: session.user.id,
+          name: profile.name || '',
+          email: session.user.email,
+          username: profile.username || '',
+          profilePicture: profile.avatar_url || '/default-avatar.png',
+          techStack: profile.tech_stack || [],
+          shortBio: profile.short_bio || '',
+          tools: profile.tools || [],
+          techInterests: profile.tech_interests || [],
+        };
+
+        setUser(currentUser);
+        setFormData({
+          name: currentUser.name,
+          username: currentUser.username || '',
+          profilePicture: currentUser.profilePicture || '',
+          techStack: currentUser.techStack?.join(', ') || '',
+          shortBio: currentUser.shortBio || '',
+          tools: currentUser.tools?.join(', ') || '',
+          techInterests: currentUser.techInterests?.join(', ') || '',
+        });
+        setPreview(currentUser.profilePicture || '/default-avatar.png');
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>
@@ -40,32 +92,60 @@ const ProfilePage = () => {
       const files = e.target.files;
       if (files && files.length > 0) {
         const file = files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          setFormData({ ...formData, profilePicture: base64data });
-          setPreview(base64data);
-        };
-        reader.readAsDataURL(file);
+        // Upload image to Cloudinary
+        uploadImage(file)
+          .then((response: CloudinaryUploadResponse) => {
+            setFormData({ ...formData, profilePicture: response.secure_url });
+            setPreview(response.secure_url);
+          })
+          .catch((error: Error) => {
+            console.error('Error uploading image:', error);
+          });
       }
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    setUser({
-      ...user!,
+    // Validate form data
+    const result = profileSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors = result.error.formErrors.fieldErrors;
+      const formattedErrors: Record<string, string> = {};
+      Object.entries(fieldErrors).forEach(([key, value]) => {
+        formattedErrors[key] = value?.[0] || '';
+      });
+      setErrors(formattedErrors);
+      return;
+    }
+
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    // Update profile in Supabase
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
       name: formData.name,
-      profilePicture: formData.profilePicture,
       username: formData.username,
-      techStack: formData.techStack.split(',').map((tech) => tech.trim()),
-      shortBio: formData.shortBio,
-      tools: formData.tools.split(',').map((tool) => tool.trim()),
-      techInterests: formData.techInterests.split(',').map((interest) => interest.trim()),
+      avatar_url: formData.profilePicture,
+      short_bio: formData.shortBio,
+      tech_stack: formData.techStack ? formData.techStack.split(',').map((tech) => tech.trim()) : [],
+      tools: formData.tools ? formData.tools.split(',').map((tool) => tool.trim()) : [],
+      tech_interests: formData.techInterests
+        ? formData.techInterests.split(',').map((interest) => interest.trim())
+        : [],
+      updated_at: new Date(),
     });
+
+    if (error) {
+      console.error('Error updating profile:', error);
+      return;
+    }
 
     alert('Profile updated successfully!');
   };
@@ -91,6 +171,7 @@ const ProfilePage = () => {
             )}
             <input type="file" name="profilePicture" accept="image/*" onChange={handleChange} />
           </div>
+          {errors.profilePicture && <p className="text-red-500">{errors.profilePicture}</p>}
         </div>
 
         {/* Name */}
@@ -105,6 +186,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.name && <p className="text-red-500">{errors.name}</p>}
         </div>
 
         {/* Username */}
@@ -119,6 +201,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.username && <p className="text-red-500">{errors.username}</p>}
         </div>
 
         {/* Short Bio */}
@@ -133,6 +216,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.shortBio && <p className="text-red-500">{errors.shortBio}</p>}
         </div>
 
         {/* Tech Stack */}
@@ -147,6 +231,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.techStack && <p className="text-red-500">{errors.techStack}</p>}
         </div>
 
         {/* Tools */}
@@ -161,6 +246,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.tools && <p className="text-red-500">{errors.tools}</p>}
         </div>
 
         {/* Tech Interests */}
@@ -175,6 +261,7 @@ const ProfilePage = () => {
             onChange={handleChange}
             className="w-full"
           />
+          {errors.techInterests && <p className="text-red-500">{errors.techInterests}</p>}
         </div>
 
         <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700">

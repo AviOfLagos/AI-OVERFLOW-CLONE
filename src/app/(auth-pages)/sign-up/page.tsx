@@ -5,9 +5,9 @@ import FormMessage from '@/components/form-message';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { createClient } from '@/utils/supabase/client';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import * as z from 'zod';
 
 const signUpSchema = z.object({
@@ -28,12 +28,12 @@ export default function Signup() {
   });
 
   const [signUpError, setSignUpError] = useState('');
-  const supabase = createClient();
+  const supabase = useSupabaseClient();
   const router = useRouter();
 
   const onSubmit = async (data: SignUpFormData) => {
     setSignUpError('');
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -46,8 +46,19 @@ export default function Signup() {
     if (error) {
       setSignUpError(error.message);
     } else {
-      // Redirect to the dashboard or desired page
-      router.push('/dashboard');
+      // Insert user details into profiles table
+      if (signUpData.user) {
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: signUpData.user.id,
+          username: data.username,
+        });
+        if (profileError) {
+          setSignUpError(profileError.message);
+          return;
+        }
+      }
+      // Redirect to verification notice page
+      router.push('/verify-email');
     }
   };
 

@@ -1,20 +1,68 @@
-'use client';
+// src/app/page.tsx
 
-import { useEffect } from 'react';
-import { useAuthStore } from '@/store/authStore';
-import { Suspense } from 'react';
-import { useIssueStore } from '@/store/issueStore';
-import PostCard from '@/components/PostCard';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { getSession, supabase } from "@/utils/auth";
+import { Suspense } from "react";
+import PostCard from "@/components/PostCard";
+import { User } from "@/types/user";
+import { Database } from "@/types/database.types";
+
+type Issue = Database["public"]["Tables"]["issues"]["Row"];
 
 export default function HomePage() {
-  const { issues, fetchIssues } = useIssueStore();
-
-  const { isAuthenticated, user } = useAuthStore();
-  const username = isAuthenticated ? user?.name : null;
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const session = await getSession();
+        if (session && session.user && session.user.email) {
+          const currentUser: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || "",
+            email: session.user.email,
+            username: session.user.user_metadata?.username || "",
+            profilePicture:
+              session.user.user_metadata?.avatar_url || "/default-avatar.png",
+            techStack: [],
+            shortBio: "",
+            tools: [],
+            techInterests: [],
+          };
+          setUsername(currentUser.name);
+        } else {
+          setUsername(null);
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("issues")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Error fetching issues:", error);
+        } else {
+          setIssues(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching issues:", error);
+      }
+    };
+
     fetchIssues();
-  }, [fetchIssues]);
+  }, []);
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -26,11 +74,9 @@ export default function HomePage() {
         )}
 
         {issues.length > 0 ? (
-          issues.map((issue) => (
-            <PostCard key={issue.id} issue={issue} />
-          ))
+          issues.map((issue) => <PostCard key={issue.id} issue={issue} />)
         ) : (
-          <div>No errors found.</div>
+          <div>No issues found.</div>
         )}
       </div>
     </Suspense>

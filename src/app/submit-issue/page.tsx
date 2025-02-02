@@ -1,40 +1,35 @@
+// src/app/submit-issue/page.tsx
+
 'use client';
 
 import { useState } from 'react';
-import { z } from 'zod';
-import { useIssueStore, IssueItem } from '@/store/issueStore';
+import { useRouter } from 'next/navigation';
+import { IssueSchema } from '@/schemas/issue';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
-
-const issueSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  errorCode: z.string().optional(),
-  screenshot: z.any().optional(),
-});
-
-type IssueSchema = z.infer<typeof issueSchema>;
+import { uploadImage } from '@/lib/cloudinary';
+import { supabase } from '@/utils/auth';
 
 export default function SubmitIssuePage() {
-  const [formData, setFormData] = useState<IssueSchema>({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    error_code: string;
+    screenshot: File | null;
+  }>({
     title: '',
     description: '',
-    errorCode: '',
-    screenshot: undefined,
+    error_code: '',
+    screenshot: null,
   });
 
-  const { user } = useAuthStore();
-  const { addIssue } = useIssueStore();
   const router = useRouter();
-
-  const [errors, setErrors] = useState<Partial<Record<keyof IssueSchema, string[]>>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, files } = e.target as HTMLInputElement;
+    const target = e.target as HTMLInputElement;
+    const { name, value, files } = target;
     if (name === 'screenshot' && files) {
       setFormData({ ...formData, screenshot: files[0] });
     } else {
@@ -42,72 +37,116 @@ export default function SubmitIssuePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = issueSchema.safeParse(formData);
+    let screenshot_url = '';
+
+    // Upload screenshot to Cloudinary if provided
+    if (formData.screenshot) {
+      try {
+        const response = await uploadImage(formData.screenshot);
+        screenshot_url = response.secure_url;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setErrors({ screenshot: 'Failed to upload image' });
+        return;
+      }
+    }
+
+    // Validate form data using IssueSchema
+    const result = IssueSchema.safeParse({
+      title: formData.title,
+      description: formData.description,
+      error_code: formData.error_code,
+      screenshot_url: screenshot_url || undefined,
+    });
+
     if (!result.success) {
       const fieldErrors = result.error.formErrors.fieldErrors;
-      setErrors(fieldErrors);
+      const formattedErrors: Record<string, string> = {};
+      Object.entries(fieldErrors).forEach(([key, value]) => {
+        formattedErrors[key] = value?.[0] || 'Invalid value';
+      });
+      setErrors(formattedErrors);
       return;
     }
 
-    const newIssue: IssueItem = {
-      id: uuidv4(),
+    // Insert new issue into Supabase
+    const { error } = await supabase.from('issues').insert({
       title: formData.title,
       description: formData.description,
-      errorCode: formData.errorCode,
-      screenshot: formData.screenshot ? URL.createObjectURL(formData.screenshot) : undefined,
-      votes: 0,
-      authorName: user?.name || 'Anonymous',
-      createdAt: new Date().toISOString(),
-    };
+      error_code: formData.error_code,
+      screenshot_url: screenshot_url || null,
+      created_at: new Date(),
+    });
 
-    addIssue(newIssue);
+    if (error) {
+      console.error('Error submitting issue:', error);
+      setErrors({ submit: 'Failed to submit issue' });
+      return;
+    }
+
+    alert('Issue submitted successfully!');
     router.push('/');
   };
 
   return (
-    <div>
-      <h1>Submit a New Issue</h1>
-      <form onSubmit={handleSubmit}>
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Submit a New Issue</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="title">Title</label>
+          <label htmlFor="title" className="block text-gray-700 mb-2">
+            Title
+          </label>
           <Input
             name="title"
             value={formData.title}
             onChange={handleChange}
+            className="w-full"
           />
-          {errors.title && <p>{errors.title[0]}</p>}
+          {errors.title && <p className="text-red-500">{errors.title}</p>}
         </div>
         <div>
-          <label htmlFor="description">Description</label>
+          <label htmlFor="description" className="block text-gray-700 mb-2">
+            Description
+          </label>
           <Textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
+            className="w-full"
           />
-          {errors.description && <p>{errors.description[0]}</p>}
+          {errors.description && <p className="text-red-500">{errors.description}</p>}
         </div>
         <div>
-          <label htmlFor="errorCode">Error Code</label>
-          <Textarea
-            name="errorCode"
-            value={formData.errorCode}
+          <label htmlFor="error_code" className="block text-gray-700 mb-2">
+            Error Code
+          </label>
+          <Input
+            name="error_code"
+            value={formData.error_code}
             onChange={handleChange}
+            className="w-full"
           />
-          {errors.errorCode && <p>{errors.errorCode[0]}</p>}
+          {errors.error_code && <p className="text-red-500">{errors.error_code}</p>}
         </div>
         <div>
-          <label htmlFor="screenshot">Screenshot</label>
+          <label htmlFor="screenshot" className="block text-gray-700 mb-2">
+            Screenshot
+          </label>
           <Input
             name="screenshot"
             type="file"
             accept="image/*"
             onChange={handleChange}
+            className="w-full"
           />
-          {errors.screenshot && <p>{errors.screenshot[0]}</p>}
+          {errors.screenshot && <p className="text-red-500">{errors.screenshot}</p>}
         </div>
-        <Button type="submit">Submit Issue</Button>
+        {errors.submit && <p className="text-red-500">{errors.submit}</p>}
+        <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700">
+          Submit Issue
+        </Button>
       </form>
     </div>
   );

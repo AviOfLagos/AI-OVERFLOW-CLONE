@@ -1,5 +1,7 @@
+// src/app/dashboard/page.tsx
+
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BookOpen,
   Code,
@@ -11,7 +13,6 @@ import {
   Moon,
   ChevronDown,
 } from "lucide-react";
-import { useIssueStore } from "@/store/issueStore";
 import PostCard from "@/components/PostCard";
 import {
   DropdownMenu,
@@ -20,6 +21,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CreateIssueModal from "@/app/dashboard/CreateIssueModal";
+import { supabase } from "@/utils/auth";
+import { Database } from "@/types/database.types";
+
+type Issue = Database['public']['Tables']['issues']['Row'];
 
 const NavBar: React.FC<{ theme: string; toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -129,13 +134,32 @@ const NavBar: React.FC<{ theme: string; toggleTheme: () => void }> = ({ theme, t
 const Dashboard = () => {
   const [theme, setTheme] = useState("dark");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { issues } = useIssueStore();
+  const [issues, setIssues] = useState<Issue[]>([]);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('issues')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.error('Error fetching issues:', error);
+        } else {
+          setIssues(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching issues:', error);
+      }
+    };
+
+    fetchIssues();
+  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  // Rest of the Dashboard component remains the same, just add the CreateIssueModal:
   return (
     <div
       className={`min-h-screen ${

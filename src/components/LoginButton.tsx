@@ -1,12 +1,25 @@
 // src/components/LoginButton.tsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/authStore';
+import { getSession } from '@/utils/auth';
 
 const LoginButton: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const session = await getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error('Error fetching session:', error);
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   if (isAuthenticated) {
     return null;
